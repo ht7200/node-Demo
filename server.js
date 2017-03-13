@@ -1,39 +1,46 @@
-/**
- * Created by Sublime Text.
- * @date   : 15-06-17
- * @author : 廖斌(liaobin)
- * @link   : 
- * @desc   : 
- */
+var http = require("http");
+var url = require("url");
 
-var express = require('express'),
-	jade = require('jade');
+function start(route, handle){
+	function onRequest(request, response){
+		var postData = "";
+		var pathname = url.parse(request.url).pathname;
 
-var app = express();
+		if(pathname == "/favicon.ico"){
+			//console.log("屏蔽/favicon.ico请求");
+			return;
+		}
 
-app.set('view engine', 'jade'); // 设置模板引擎
-app.set('views', './views');  // 设置模板相对路径(相对当前目录)
+		//2.收到监听请求
+		console.log("2.Request for " + pathname + " received.");
 
-app.locals.basedir = './'
+		request.setEncoding("UTF-8");
+		request.addListener("data", function(postDataChunk){
+			postData += postDataChunk;
+			console.log("Received POST data chunk '" + postDataChunk + "'.");
+		});
+		request.addListener("end", function(){
+			route(handle, pathname, response, postData);
+		});
 
-var port = 4567 ;  //BAE 百度应用引擎默认端口号
- //中间件定义
-app.use(express.logger());
-app.use(express.compress());
-app.use(express.bodyParser());
-app.use(express.methodOverride());
-app.use(express.cookieParser());
+		
 
-//静态资源
+		// //response改到route里面去处理
+		// response.writeHead(200, {"Content-Type":"text/plain"});
+		// response.write("hello world!");
+		// response.end();
+	}
 
-app.use(express.static('./static'));
+	//1.创建http服务器，并启动监听
+	http.createServer(onRequest).listen(8888);	
+	console.log("1.Server has started.");
+}
 
-//启动服务
-app.listen(port, function() {
-	console.log('服务启动成功！请访问 http://localhost:' + port);
-});
+exports.start = start;
 
 
-//启动路由分发
-require('./router/index').init(app);
-
+// http.createServer(function(request, response){
+// 	response.writeHead(200, {"Content-Type":"text/plain"});
+// 	response.write("hello world!");
+// 	response.end();
+// }).listen(8888);
